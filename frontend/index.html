@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#3B82F6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Alpha Whisper</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Header -->
+  <header class="app-header" id="app-header">
+    <div class="header-content">
+      <div class="header-logo">
+        <img src="../logo.png" alt="Alpha Whisper" class="logo-img" id="header-logo-img">
+        <div class="logo-glow"></div>
+      </div>
+      <h1 class="header-title">Alpha Whisper</h1>
+      <div class="header-actions" id="header-actions">
+        <button class="btn-ghost header-btn" id="auth-btn" onclick="Auth.showLoginModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          <span>Login</span>
+        </button>
+        <button class="btn-ghost header-btn hidden" id="logout-btn" onclick="Auth.handleLogout()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="main-content" id="main-content">
+    <!-- Markets Tab -->
+    <section class="tab-view" id="markets-view" data-tab="markets">
+      <div class="skeleton-loading" id="markets-skeleton">
+        <div class="skeleton-card">
+          <div class="skeleton-line short" style="width: 40%"></div>
+          <div class="skeleton-line" style="width: 70%"></div>
+          <div class="skeleton-line short" style="width: 60%"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-line short" style="width: 45%"></div>
+          <div class="skeleton-line" style="width: 80%"></div>
+          <div class="skeleton-line short" style="width: 55%"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-line short" style="width: 35%"></div>
+          <div class="skeleton-line" style="width: 65%"></div>
+          <div class="skeleton-line short" style="width: 70%"></div>
+        </div>
+      </div>
+      <div class="tab-content" id="markets-content"></div>
+    </section>
+
+    <!-- Whisper Tab -->
+    <section class="tab-view hidden" id="whisper-view" data-tab="whisper">
+      <div class="tab-content chat-container" id="whisper-content">
+        <div class="chat-header">
+          <div class="chat-header-avatar">
+            <img src="../logo.png" alt="Alpha Bot" class="bot-avatar-img">
+            <span class="bot-status"></span>
+          </div>
+          <div class="chat-header-info">
+            <h3>Alpha Bot</h3>
+            <span class="status-text">Online</span>
+          </div>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-quick-actions" id="chat-quick-actions">
+          <button class="quick-pill" onclick="Whisper.quickAction('insights')">Quick Insights</button>
+          <button class="quick-pill" onclick="Whisper.quickAction('fundamentals')">Fundamentals</button>
+          <button class="quick-pill" onclick="Whisper.quickAction('technicals')">Technicals</button>
+          <button class="quick-pill" onclick="Whisper.quickAction('discover')">Discover</button>
+          <button class="quick-pill" onclick="Whisper.quickAction('markets')">Markets</button>
+        </div>
+        <div class="chat-input-area">
+          <div class="chat-input-wrapper">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Ask Alpha Bot anything..." autocomplete="off">
+            <button class="chat-send-btn" id="chat-send-btn" onclick="Whisper.sendMessage()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Portfolio Tab -->
+    <section class="tab-view hidden" id="portfolio-view" data-tab="portfolio">
+      <div class="skeleton-loading" id="portfolio-skeleton">
+        <div class="skeleton-card">
+          <div class="skeleton-line short" style="width: 50%"></div>
+          <div class="skeleton-line" style="width: 80%; height: 32px"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-line short" style="width: 30%"></div>
+          <div class="skeleton-line" style="width: 60%"></div>
+          <div class="skeleton-line" style="width: 80%"></div>
+        </div>
+      </div>
+      <div class="tab-content" id="portfolio-content"></div>
+    </section>
+
+    <!-- Profile Tab -->
+    <section class="tab-view hidden" id="profile-view" data-tab="profile">
+      <div class="tab-content" id="profile-content"></div>
+    </section>
+  </main>
+
+  <!-- Bottom Tab Navigation -->
+  <nav class="tab-bar" id="tab-bar">
+    <button class="tab-btn active" data-tab="markets" onclick="App.switchTab('markets')">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span class="tab-label">Markets</span>
+    </button>
+    <button class="tab-btn" data-tab="whisper" onclick="App.switchTab('whisper')">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="tab-label">Whisper</span>
+    </button>
+    <button class="tab-btn" data-tab="portfolio" onclick="App.switchTab('portfolio')">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      <span class="tab-label">Portfolio</span>
+    </button>
+    <button class="tab-btn" data-tab="profile" onclick="App.switchTab('profile')">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="tab-label">Profile</span>
+    </button>
+  </nav>
+
+  <!-- Auth Modal -->
+  <div class="modal-overlay hidden" id="auth-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-brand">
+          <img src="../logo.png" alt="Alpha Whisper" class="modal-logo">
+          <h2 id="auth-modal-title">Welcome Back</h2>
+        </div>
+        <button class="modal-close" onclick="Auth.closeAuthModal()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="auth-modal-body">
+        <!-- Auth forms injected here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Holding Modal -->
+  <div class="modal-overlay hidden" id="holding-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="holding-modal-title">Add Holding</h2>
+        <button class="modal-close" onclick="Portfolio.closeHoldingModal()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="holding-form" onsubmit="Portfolio.handleHoldingSubmit(event)">
+          <input type="hidden" id="holding-id">
+          <div class="form-group">
+            <label class="form-label">Symbol</label>
+            <input type="text" id="holding-symbol" class="form-input" placeholder="e.g. AAPL" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Company Name</label>
+            <input type="text" id="holding-name" class="form-input" placeholder="e.g. Apple Inc.">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Shares</label>
+              <input type="number" id="holding-shares" class="form-input" placeholder="0" step="0.001" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Avg Cost ($)</label>
+              <input type="number" id="holding-avg-cost" class="form-input" placeholder="0.00" step="0.01" required>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" style="width: 100%; margin-top: 8px;">Save Holding</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay hidden" id="loading-overlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/markets.js"></script>
+  <script src="js/whisper.js"></script>
+  <script src="js/portfolio.js"></script>
+  <script src="js/profile.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

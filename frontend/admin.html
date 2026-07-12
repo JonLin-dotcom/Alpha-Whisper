@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alpha Whisper - Admin Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    /* Admin-specific overrides */
+    body { max-width: 1200px; margin: 0 auto; padding: 0; background: var(--bg-surface); }
+    .admin-body { padding: 20px; }
+    .admin-header { 
+      background: var(--bg-primary); 
+      border-bottom: 1px solid var(--border); 
+      padding: 16px 24px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      position: sticky; 
+      top: 0; 
+      z-index: 100; 
+    }
+    .admin-header-left { display: flex; align-items: center; gap: 12px; }
+    .admin-header-logo { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+    .admin-header-title { font-size: 18px; font-weight: 700; }
+    .admin-header-nav { display: flex; gap: 8px; }
+    .admin-stats-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+      gap: 16px; 
+      margin-bottom: 24px; 
+    }
+    .admin-stat-card { 
+      background: var(--bg-card); 
+      border: 1px solid var(--border-card); 
+      border-radius: var(--radius-lg); 
+      padding: 20px; 
+      box-shadow: var(--shadow-sm); 
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .admin-stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .admin-stat-label { font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .admin-stat-value { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+    .admin-stat-change { font-size: 12px; font-weight: 600; margin-top: 4px; }
+    .admin-chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .admin-chart-card { 
+      background: var(--bg-card); 
+      border: 1px solid var(--border-card); 
+      border-radius: var(--radius-lg); 
+      padding: 20px; 
+      box-shadow: var(--shadow-sm); 
+    }
+    .admin-chart-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
+    .admin-chart-canvas { max-height: 240px; }
+    .admin-table-container { 
+      background: var(--bg-card); 
+      border: 1px solid var(--border-card); 
+      border-radius: var(--radius-lg); 
+      overflow: hidden; 
+      box-shadow: var(--shadow-sm); 
+    }
+    .admin-table-toolbar { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      padding: 12px 16px; 
+      border-bottom: 1px solid var(--border); 
+      flex-wrap: wrap; 
+      gap: 10px;
+    }
+    .admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .admin-table thead th { 
+      background: var(--bg-surface); 
+      padding: 12px 16px; 
+      text-align: left; 
+      font-size: 11px; 
+      font-weight: 600; 
+      color: var(--text-secondary); 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+      border-bottom: 1px solid var(--border); 
+    }
+    .admin-table tbody td { padding: 10px 16px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
+    .admin-table tbody tr:hover { background: var(--bg-surface); }
+    .admin-table tbody tr:last-child td { border-bottom: none; }
+    .admin-pagination { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      padding: 12px 16px; 
+      border-top: 1px solid var(--border); 
+    }
+    .admin-pagination-info { font-size: 13px; color: var(--text-secondary); }
+    .admin-pagination-btns { display: flex; gap: 4px; }
+    .admin-page-btn { 
+      padding: 6px 12px; 
+      border-radius: var(--radius-sm); 
+      font-size: 13px; 
+      font-weight: 500; 
+      color: var(--text-secondary); 
+      background: var(--bg-surface); 
+      border: 1px solid var(--border); 
+      cursor: pointer; 
+      transition: all 0.15s ease;
+    }
+    .admin-page-btn:hover { background: var(--input-bg); }
+    .admin-page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .admin-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .admin-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .admin-badge-success { background: #D1FAE5; color: #065F46; }
+    .admin-badge-warning { background: #FEF3C7; color: #92400E; }
+    .admin-filter-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .admin-filter-input { 
+      padding: 8px 12px; 
+      background: var(--input-bg); 
+      border: 1px solid var(--border); 
+      border-radius: var(--radius-sm); 
+      font-size: 13px; 
+      outline: none; 
+      color: var(--text-primary);
+    }
+    .admin-filter-input:focus { border-color: var(--primary); }
+    .admin-login-box { 
+      max-width: 400px; 
+      margin: 80px auto; 
+      background: var(--bg-card); 
+      border: 1px solid var(--border-card); 
+      border-radius: var(--radius-xl); 
+      padding: 32px; 
+      box-shadow: var(--shadow-lg); 
+      text-align: center;
+    }
+    .admin-login-logo { width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 16px; object-fit: cover; }
+    .admin-refresh-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; font-size: 13px; font-weight: 500; color: var(--text-secondary); background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s ease; }
+    .admin-refresh-btn:hover { background: var(--input-bg); }
+    .admin-refresh-btn svg { transition: transform 0.3s ease; }
+    .admin-refresh-btn.spinning svg { transform: rotate(360deg); }
+    @media (max-width: 768px) { 
+      .admin-chart-grid { grid-template-columns: 1fr; } 
+      .admin-stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .admin-table-container { overflow-x: auto; }
+      .admin-body { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="admin-app">
+    <!-- Login Gate -->
+    <div id="admin-login">
+      <div class="admin-login-box">
+        <img src="../logo.png" alt="Alpha Whisper" class="admin-login-logo">
+        <h2 style="font-size:22px;font-weight:700;margin-bottom:6px;">Admin Dashboard</h2>
+        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:24px;">Sign in with admin credentials to continue.</p>
+        <form id="admin-login-form" onsubmit="AdminApp.handleLogin(event)">
+          <div class="form-group" style="text-align:left;">
+            <label class="form-label">Admin Username</label>
+            <input type="text" id="admin-username" class="form-input" placeholder="admin" required autocomplete="username">
+          </div>
+          <div class="form-group" style="text-align:left;">
+            <label class="form-label">Password</label>
+            <input type="password" id="admin-password" class="form-input" placeholder="Enter password" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn-primary" style="width:100%;">Sign In</button>
+        </form>
+        <div style="margin-top:16px;">
+          <a href="index.html" style="font-size:13px;color:var(--primary);font-weight:500;">&larr; Back to App</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard (hidden until login) -->
+    <div id="admin-dashboard" class="hidden">
+      <!-- Header -->
+      <header class="admin-header">
+        <div class="admin-header-left">
+          <img src="../logo.png" alt="Alpha Whisper" class="admin-header-logo">
+          <span class="admin-header-title">Alpha Whisper Admin</span>
+          <span class="badge badge-success" style="margin-left:8px;">Live</span>
+        </div>
+        <div class="admin-header-nav">
+          <button class="admin-refresh-btn" id="refresh-btn" onclick="AdminApp.refreshData()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+          <button class="btn-ghost" onclick="AdminApp.logout()" style="font-size:13px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Logout
+          </button>
+          <a href="index.html" class="btn-secondary" style="font-size:13px;text-decoration:none;display:inline-flex;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            App
+          </a>
+        </div>
+      </header>
+
+      <div class="admin-body">
+        <!-- Stats Cards -->
+        <div class="admin-stats-grid">
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Total Users
+            </div>
+            <div class="admin-stat-value" id="stat-users">1,284</div>
+            <div class="admin-stat-change" style="color:var(--success);">+42 this week</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              Total AUM
+            </div>
+            <div class="admin-stat-value" id="stat-aum">$48.2M</div>
+            <div class="admin-stat-change" style="color:var(--success);">+3.8% this month</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              Avg Return
+            </div>
+            <div class="admin-stat-value" style="color:var(--success);" id="stat-return">+18.4%</div>
+            <div class="admin-stat-change" style="color:var(--success);">+2.1% vs last month</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              Active Today
+            </div>
+            <div class="admin-stat-value" id="stat-active">326</div>
+            <div class="admin-stat-change" style="color:var(--text-secondary);">25% of total users</div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="admin-chart-grid">
+          <div class="admin-chart-card">
+            <div class="admin-chart-title">User Growth</div>
+            <canvas id="userGrowthChart" class="admin-chart-canvas"></canvas>
+          </div>
+          <div class="admin-chart-card">
+            <div class="admin-chart-title">Sector Allocation</div>
+            <canvas id="sectorChart" class="admin-chart-canvas"></canvas>
+          </div>
+        </div>
+
+        <div class="admin-chart-grid" style="grid-template-columns: 1fr 1fr;">
+          <div class="admin-chart-card">
+            <div class="admin-chart-title">Daily P&L Distribution</div>
+            <canvas id="pnlChart" class="admin-chart-canvas"></canvas>
+          </div>
+          <div class="admin-chart-card">
+            <div class="admin-chart-title">Risk Score Distribution</div>
+            <canvas id="riskChart" class="admin-chart-canvas"></canvas>
+          </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="admin-table-container" style="margin-top:24px;">
+          <div class="admin-table-toolbar">
+            <div style="font-size:15px;font-weight:600;">All Users</div>
+            <div class="admin-filter-row">
+              <input type="text" class="admin-filter-input" id="user-search" placeholder="Search users..." oninput="AdminApp.filterUsers()">
+              <input type="date" class="admin-filter-input" id="date-from">
+              <input type="date" class="admin-filter-input" id="date-to">
+              <button class="admin-refresh-btn" onclick="AdminApp.exportCSV()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export CSV
+              </button>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="admin-table" id="users-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Holdings</th>
+                  <th>Total Value</th>
+                  <th>Return %</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body"></tbody>
+            </table>
+          </div>
+          <div class="admin-pagination">
+            <span class="admin-pagination-info">Showing <span id="page-start">1</span> - <span id="page-end">20</span> of <span id="total-users">1284</span></span>
+            <div class="admin-pagination-btns" id="pagination-btns"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Admin mock data
+    const ADMIN_MOCK_USERS = Array.from({ length: 128 }, (_, i) => {
+      const names = ['alex','jordan','taylor','casey','morgan','riley','quinn','avery','blake','cameron','drew','ellis','finley','harper','hayden','jamie','kendall','lane','marion','milan','nico','paige','park','parker','pat','reese','remy','robin','sage','sam','shannon','shawn','skyler','sydney','terry','toby','val','west','wynn','zion'];
+      const domains = ['gmail.com','yahoo.com','outlook.com','icloud.com','proton.me'];
+      const name = names[i % names.length] + (i > 38 ? Math.floor(i/38) : '');
+      const holdingsCount = Math.floor(Math.random() * 15) + 1;
+      const totalValue = 5000 + Math.random() * 500000;
+      const returnPct = (Math.random() - 0.3) * 40;
+      const created = new Date(2024, 0, 1 + Math.floor(Math.random() * 150));
+      return {
+        id: 1000 + i,
+        username: name,
+        email: `${name}@${domains[i % domains.length]}`,
+        holdingsCount,
+        totalValue,
+        returnPct,
+        created: created.toISOString().split('T')[0],
+        riskScore: Math.floor(Math.random() * 100),
+        isActive: Math.random() > 0.3
+      };
+    });
+
+    const AdminApp = {
+      isLoggedIn: false,
+      currentPage: 1,
+      pageSize: 20,
+      filteredUsers: [...ADMIN_MOCK_USERS],
+      charts: {},
+
+      init() {
+        // Set default date range
+        const today = new Date();
+        const from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        document.getElementById('date-from').value = from.toISOString().split('T')[0];
+        document.getElementById('date-to').value = today.toISOString().split('T')[0];
+      },
+
+      handleLogin(event) {
+        event.preventDefault();
+        const username = document.getElementById('admin-username').value;
+        const password = document.getElementById('admin-password').value;
+
+        // Simple client-side check (real app would validate server-side)
+        if (username === 'admin' && password === 'admin123') {
+          this.isLoggedIn = true;
+          document.getElementById('admin-login').classList.add('hidden');
+          document.getElementById('admin-dashboard').classList.remove('hidden');
+          this.initCharts();
+          this.renderUsersTable();
+          this.renderPagination();
+        } else {
+          alert('Invalid admin credentials. Use admin/admin123 for demo.');
+        }
+      },
+
+      logout() {
+        this.isLoggedIn = false;
+        document.getElementById('admin-dashboard').classList.add('hidden');
+        document.getElementById('admin-login').classList.remove('hidden');
+        document.getElementById('admin-login-form').reset();
+      },
+
+      refreshData() {
+        const btn = document.getElementById('refresh-btn');
+        btn.classList.add('spinning');
+        btn.disabled = true;
+
+        setTimeout(() => {
+          // Randomize stats slightly
+          document.getElementById('stat-users').textContent = (1200 + Math.floor(Math.random() * 200)).toLocaleString();
+          document.getElementById('stat-aum').textContent = '$' + (45 + Math.random() * 10).toFixed(1) + 'M';
+          document.getElementById('stat-active').textContent = (250 + Math.floor(Math.random() * 150)).toLocaleString();
+
+          this.updateCharts();
+          btn.classList.remove('spinning');
+          btn.disabled = false;
+        }, 800);
+      },
+
+      initCharts() {
+        Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif";
+        Chart.defaults.color = '#6B7280';
+
+        // User Growth Chart
+        const ctx1 = document.getElementById('userGrowthChart').getContext('2d');
+        const gradient1 = ctx1.createLinearGradient(0, 0, 0, 240);
+        gradient1.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+        gradient1.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+        this.charts.userGrowth = new Chart(ctx1, {
+          type: 'line',
+          data: {
+            labels: ['Jan','Feb','Mar','Apr','May','Jun'],
+            datasets: [{
+              label: 'Users',
+              data: [420, 580, 750, 890, 1080, 1284],
+              borderColor: '#3B82F6',
+              backgroundColor: gradient1,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 4,
+              pointBackgroundColor: '#3B82F6',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, grid: { color: '#F3F4F6' } },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+
+        // Sector Allocation Chart
+        const ctx2 = document.getElementById('sectorChart').getContext('2d');
+        this.charts.sector = new Chart(ctx2, {
+          type: 'doughnut',
+          data: {
+            labels: ['Technology', 'Healthcare', 'Finance', 'Consumer', 'Energy', 'Other'],
+            datasets: [{
+              data: [35, 18, 15, 12, 8, 12],
+              backgroundColor: ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', '#9CA3AF'],
+              borderWidth: 0,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+              legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyleWidth: 8 } }
+            }
+          }
+        });
+
+        // Daily P&L Chart
+        const ctx3 = document.getElementById('pnlChart').getContext('2d');
+        this.charts.pnl = new Chart(ctx3, {
+          type: 'bar',
+          data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+            datasets: [{
+              label: 'Daily P&L ($)',
+              data: [12500, -4200, 18900, -3100, 24600],
+              backgroundColor: [ '#10B981', '#EF4444', '#10B981', '#EF4444', '#10B981' ],
+              borderRadius: 6,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { grid: { color: '#F3F4F6' } },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+
+        // Risk Score Distribution
+        const ctx4 = document.getElementById('riskChart').getContext('2d');
+        this.charts.risk = new Chart(ctx4, {
+          type: 'bar',
+          data: {
+            labels: ['0-20', '21-40', '41-60', '61-80', '81-100'],
+            datasets: [{
+              label: 'Users',
+              data: [85, 210, 420, 380, 189],
+              backgroundColor: ['#10B981', '#34D399', '#F59E0B', '#F97316', '#EF4444'],
+              borderRadius: 6,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { grid: { color: '#F3F4F6' }, title: { display: true, text: 'Users' } },
+              x: { grid: { display: false }, title: { display: true, text: 'Risk Score' } }
+            }
+          }
+        });
+      },
+
+      updateCharts() {
+        // Randomize chart data
+        if (this.charts.userGrowth) {
+          this.charts.userGrowth.data.datasets[0].data =
+            this.charts.userGrowth.data.datasets[0].data.map(v => v + Math.floor(Math.random() * 100 - 30));
+          this.charts.userGrowth.update();
+        }
+        if (this.charts.pnl) {
+          this.charts.pnl.data.datasets[0].data =
+            this.charts.pnl.data.datasets[0].data.map(() => Math.floor(Math.random() * 40000 - 10000));
+          this.charts.pnl.data.datasets[0].backgroundColor =
+            this.charts.pnl.data.datasets[0].data.map(v => v >= 0 ? '#10B981' : '#EF4444');
+          this.charts.pnl.update();
+        }
+      },
+
+      renderUsersTable() {
+        const tbody = document.getElementById('users-table-body');
+        const start = (this.currentPage - 1) * this.pageSize;
+        const end = start + this.pageSize;
+        const pageUsers = this.filteredUsers.slice(start, end);
+
+        tbody.innerHTML = pageUsers.map(user => {
+          const isPos = user.returnPct >= 0;
+          return `
+            <tr>
+              <td style="font-variant-numeric:tabular-nums;color:var(--text-muted);font-size:12px;">#${user.id}</td>
+              <td style="font-weight:600;">${user.username}</td>
+              <td style="font-size:13px;color:var(--text-secondary);">${user.email}</td>
+              <td>${user.holdingsCount}</td>
+              <td style="font-weight:600;font-variant-numeric:tabular-nums;">$${(user.totalValue / 1000).toFixed(1)}K</td>
+              <td style="color:${isPos ? 'var(--success)' : 'var(--danger)'};font-weight:600;">${isPos ? '+' : ''}${user.returnPct.toFixed(1)}%</td>
+              <td style="font-size:12px;color:var(--text-secondary);">${user.created}</td>
+              <td>
+                <button class="holding-action-btn" onclick="AdminApp.viewUser(${user.id})" title="View">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        document.getElementById('page-start').textContent = start + 1;
+        document.getElementById('page-end').textContent = Math.min(end, this.filteredUsers.length);
+        document.getElementById('total-users').textContent = this.filteredUsers.length.toLocaleString();
+      },
+
+      renderPagination() {
+        const totalPages = Math.ceil(this.filteredUsers.length / this.pageSize);
+        const container = document.getElementById('pagination-btns');
+
+        let html = `<button class="admin-page-btn" onclick="AdminApp.goToPage(${this.currentPage - 1})" ${this.currentPage === 1 ? 'disabled' : ''}>Prev</button>`;
+
+        for (let i = 1; i <= totalPages; i++) {
+          if (i === 1 || i === totalPages || (i >= this.currentPage - 1 && i <= this.currentPage + 1)) {
+            html += `<button class="admin-page-btn ${i === this.currentPage ? 'active' : ''}" onclick="AdminApp.goToPage(${i})">${i}</button>`;
+          } else if (i === this.currentPage - 2 || i === this.currentPage + 2) {
+            html += `<span style="color:var(--text-muted);padding:0 4px;">...</span>`;
+          }
+        }
+
+        html += `<button class="admin-page-btn" onclick="AdminApp.goToPage(${this.currentPage + 1})" ${this.currentPage === totalPages ? 'disabled' : ''}>Next</button>`;
+        container.innerHTML = html;
+      },
+
+      goToPage(page) {
+        const totalPages = Math.ceil(this.filteredUsers.length / this.pageSize);
+        if (page < 1 || page > totalPages) return;
+        this.currentPage = page;
+        this.renderUsersTable();
+        this.renderPagination();
+      },
+
+      filterUsers() {
+        const query = document.getElementById('user-search').value.toLowerCase();
+        this.filteredUsers = ADMIN_MOCK_USERS.filter(u =>
+          u.username.toLowerCase().includes(query) ||
+          u.email.toLowerCase().includes(query)
+        );
+        this.currentPage = 1;
+        this.renderUsersTable();
+        this.renderPagination();
+      },
+
+      viewUser(id) {
+        const user = ADMIN_MOCK_USERS.find(u => u.id === id);
+        if (user) {
+          alert(`User Details:\n\nID: #${user.id}\nUsername: ${user.username}\nEmail: ${user.email}\nHoldings: ${user.holdingsCount}\nTotal Value: $${user.totalValue.toLocaleString('en-US', {maximumFractionDigits: 0})}\nReturn: ${user.returnPct >= 0 ? '+' : ''}${user.returnPct.toFixed(2)}%\nRisk Score: ${user.riskScore}\nActive: ${user.isActive ? 'Yes' : 'No'}\nCreated: ${user.created}`);
+        }
+      },
+
+      exportCSV() {
+        const headers = ['ID', 'Username', 'Email', 'Holdings', 'Total Value', 'Return %', 'Risk Score', 'Created', 'Active'];
+        const rows = this.filteredUsers.map(u => [
+          u.id, u.username, u.email, u.holdingsCount,
+          u.totalValue.toFixed(2), u.returnPct.toFixed(2), u.riskScore,
+          u.created, u.isActive ? 'Yes' : 'No'
+        ]);
+
+        const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `alpha-whisper-users-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    };
+
+    // Init
+    AdminApp.init();
+  </script>
+</body>
+</html>
