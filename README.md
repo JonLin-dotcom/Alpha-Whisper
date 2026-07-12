@@ -1,83 +1,129 @@
-# Alpha Whisper v2.0
+# Alpha Whisper v2.1
 
-> Generative AI Robo-Advisory Framework - Fully redesigned with AInvest-style UI
+> Generative AI Robo-Advisory Framework — Now with Full US Market Real-Time Data
 
 [![Target SDK](https://img.shields.io/badge/Target%20SDK-34%20(Android%2014)-blue)](https://developer.android.com/about/versions/14)
 [![Min SDK](https://img.shields.io/badge/Min%20SDK-28%20(Android%209)-green)](https://developer.android.com/about/versions/pie)
 [![Architecture](https://img.shields.io/badge/Arch-arm64--v8a-orange)](https://developer.android.com/ndk/guides/abis)
+[![Yahoo Finance](https://img.shields.io/badge/Data-Yahoo%20Finance-purple)](https://finance.yahoo.com)
+[![Database](https://img.shields.io/badge/DB-Alibaba%20Cloud%20MySQL-cyan)](https://www.alibabacloud.com/product/apsaradb-for-rds)
 
-## What's New in v2.0
+## What's New in v2.1
 
-### Major Redesign (AInvest-Style UI)
-- **Light Theme** - Complete redesign from dark to professional light theme
-- **Blue Gradient Primary** - Matches AInvest's professional financial aesthetic
-- **4-Tab Navigation** - Markets, Whisper (AI Chat), Portfolio, Profile
-- **Mobile-First** - Optimized for 375-430px mobile screens
+### Full US Stock Market Integration
+- **206 pre-seeded US stocks** — Mega-cap tech, large-caps, ETFs, crypto, international ADRs
+- **Search ALL stocks** — Fuzzy search by symbol or company name
+- **Real-time Yahoo Finance data** — Live prices, changes, volume, market cap
+- **60-second price cache** in MySQL for lightning-fast responses
+- **Trending lists** — Daily Gainers, Losers, Most Active, Sector Performance
+- **Stock detail modal** — Price chart, key stats (P/E, EPS, Beta, 52W range), add to portfolio/watchlist
 
-### New Features
-- **User Authentication** - Full registration/login system with JWT
-- **Portfolio Tracking** - CRUD holdings, P&L calculation, performance charts
-- **AI Chat (AIME-Style)** - Logo avatar in bot messages, quick insight pills
-- **Admin Dashboard** - User stats, charts, CSV export
-- **MySQL Backend** - Connected to Alibaba Cloud RDS
+### Portfolio Upgrade
+- **Any stock can be added** — Search and add any US stock, not limited to 5
+- **Real-time P&L** — Auto-refresh prices every 30 seconds via batch quotes
+- **Watchlist** — Track stocks without adding to portfolio
+- **Sortable holdings table** — Sort by any column
 
-### App Logo
-The green elf mascot logo appears in:
-- App launcher icon and header
-- AI bot avatar in Whisper chat dialog
-- Auth modal branding
+### Markets Tab Overhaul
+- **Global search bar** — Debounced typeahead with symbol + name matching
+- **Market indices** — SPY, QQQ, DIA, VIX with sparkline charts
+- **Trending stocks** — Horizontal scrollable cards
+- **Top Gainers/Losers/Most Active** — 20-row tables with real-time data
+- **Sector performance** — Visual grid of all 11 sectors
 
 ## Architecture
 
 ```
 Alpha Whisper/
-├── frontend/               # Pure HTML/CSS/JS SPA (no build tools)
-│   ├── index.html          # Main app shell
-│   ├── admin.html          # Admin dashboard
+├── frontend/                 # Pure HTML/CSS/JS SPA
+│   ├── index.html            # Main app shell (with stock-detail.js)
+│   ├── admin.html            # Admin dashboard
 │   ├── css/
-│   │   └── styles.css      # Complete design system (1,652 lines)
+│   │   └── styles.css        # AInvest-style design system
 │   ├── js/
-│   │   ├── app.js          # State management & router
-│   │   ├── api.js          # HTTP client for backend
-│   │   ├── auth.js         # Login/register/logout
-│   │   ├── markets.js      # Market indices & momentum
-│   │   ├── whisper.js      # AI chat with logo avatar
-│   │   ├── portfolio.js    # Holdings CRUD + performance
-│   │   └── profile.js      # User profile & risk assessment
-│   └── logo.png            # Green elf mascot
+│   │   ├── api.js            # API client (stocks, watchlist, batch quotes)
+│   │   ├── app.js            # SPA router & state management
+│   │   ├── auth.js           # Login/register/logout
+│   │   ├── markets.js        # Full market data + search + trending
+│   │   ├── portfolio.js      # Any-stock portfolio + watchlist
+│   │   ├── stock-detail.js   # Stock detail modal with chart & stats
+│   │   ├── whisper.js        # AI chat with logo avatar
+│   │   └── profile.js        # User profile & settings
+│   └── logo.png              # Green elf mascot
 ├── backend/
-│   ├── server.js           # Express API (1,053 lines)
-│   └── schema.sql          # MySQL database schema
+│   ├── server.js             # Express API (2,281 lines)
+│   │                         #   + yahoo-finance2 integration
+│   │                         #   + 206 pre-seeded US stocks
+│   │                         #   + 60s price cache
+│   │                         #   + watchlist endpoints
+│   │                         #   + batch quotes
+│   │                         #   + rate limiting (100 req/min)
+│   └── schema.sql            # MySQL schema (8 tables)
 └── android/
-    └── alpha-whisper-v2.aab  # Android App Bundle (831 KB)
+    └── alpha-whisper-v2.1.aab  # Google Play AAB (832 KB)
 ```
 
 ## API Endpoints
 
+### Authentication
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/api/auth/register` | POST | - | User registration |
-| `/api/auth/login` | POST | - | User login |
-| `/api/auth/me` | GET | Token | Get current user |
-| `/api/market/indices` | GET | - | Major indices (SPY, QQQ, DIA, IWM) |
-| `/api/market/momentum` | GET | - | Market breadth data |
-| `/api/portfolio` | GET/POST | Token | Portfolio holdings CRUD |
+| `/api/auth/login` | POST | - | User login (JWT) |
+| `/api/auth/me` | GET | Token | Current user profile |
+
+### Stocks (Yahoo Finance Powered)
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/stocks/search?q=APPLE` | GET | - | Search all US stocks |
+| `/api/stocks/:symbol/quote` | GET | - | Real-time quote (60s cache) |
+| `/api/stocks/:symbol/historical` | GET | - | Price history for charts |
+| `/api/stocks/indices` | GET | - | SPY, QQQ, DIA, VIX, IWM |
+| `/api/stocks/trending` | GET | - | Yahoo Finance trending US |
+| `/api/stocks/gainers` | GET | - | Top 20 gainers |
+| `/api/stocks/losers` | GET | - | Top 20 losers |
+| `/api/stocks/most-active` | GET | - | Top 20 by volume |
+| `/api/stocks/sectors` | GET | - | Sector performance |
+| `/api/stocks/batch-quotes` | POST | - | Multi-symbol quotes |
+
+### Watchlist
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/watchlist` | POST | Token | Add to watchlist |
+| `/api/watchlist` | GET | Token | Get watchlist |
+| `/api/watchlist/:symbol` | DELETE | Token | Remove from watchlist |
+
+### Portfolio & Performance
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/portfolio` | GET/POST | Token | Holdings CRUD |
 | `/api/performance` | GET | Token | Performance history |
-| `/api/whisper/chat` | POST | Token | AI chat messages |
-| `/api/admin/users` | GET | Admin | All users with summaries |
+
+### AI Whisper
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/whisper/chat` | POST | Token | AI chat with contextual advice |
+
+### Admin
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
 | `/api/admin/stats` | GET | Admin | Dashboard statistics |
+| `/api/admin/users` | GET | Admin | All users |
 
 ## Database (Alibaba Cloud MySQL)
 
 ```
 Host: 47.119.141.23:3306
 Database: alpha_whisper
-Tables:
-  - users (auth + risk profile)
-  - portfolio_holdings
-  - performance_snapshots
-  - chat_sessions / chat_messages
-  - audit_log
+Tables: 8
+  - users              (auth + profile)
+  - portfolio_holdings (user's stock positions)
+  - performance_snapshots (daily P&L tracking)
+  - chat_sessions      (AI chat history)
+  - chat_messages
+  - stock_list         (206 US stocks, FULLTEXT search)
+  - stock_prices       (real-time cache, 60s TTL)
+  - watchlist          (user's watchlist)
 ```
 
 ## Quick Start
@@ -85,27 +131,51 @@ Tables:
 ### Backend
 ```bash
 cd backend
-npm install express mysql2 bcryptjs jsonwebtoken cors helmet dotenv
+npm install express mysql2 bcryptjs jsonwebtoken cors helmet dotenv yahoo-finance2
 node server.js
-# Server runs on http://localhost:3000
+# API runs on http://localhost:3000
+# Auto-creates tables + seeds 206 US stocks on first run
 ```
 
 ### Frontend
-Open `frontend/index.html` in a browser or WebView.
+Open `frontend/index.html` in browser or Android WebView.
+
+### Deploy to Android
+The AAB includes the full frontend embedded as assets, loads via `file:///android_asset/frontend/index.html`.
 
 ## Android AAB
 
-The AAB file meets all Google Play Console requirements:
-- **Target SDK**: 34 (Android 14) > required 33
-- **64-bit**: arm64-v8a ABI filter
-- **Size**: ~831 KB
+| Spec | Value |
+|------|-------|
+| Target SDK | 34 (Android 14) |
+| Min SDK | 28 (Android 9) |
+| ABI | arm64-v8a |
+| Size | ~832 KB |
+| Backend | Node.js + Express + MySQL |
+| Data Source | Yahoo Finance (real-time) |
 
-## v1.0 Legacy
+## Changelog
 
-v1.0 was a web-based prototype. v2.0 is a complete rewrite with:
-- New UI design (AInvest-style)
-- Added user authentication
-- Added portfolio tracking
-- Added admin dashboard
-- Added MySQL database backend
-- Embedded frontend in Android AAB
+### v2.1 (2026-07-12)
+- Full US stock market search via Yahoo Finance
+- Real-time price quotes with 60s MySQL cache
+- Trending stocks, gainers, losers, most active
+- Stock detail modal with chart and key stats
+- Any-stock portfolio (was limited to 5)
+- User watchlist
+- Batch quotes for efficient portfolio refresh
+- 206 pre-seeded popular US stocks
+- Rate limiting (100 req/min)
+
+### v2.0 (2026-07-11)
+- AInvest-style light theme UI redesign
+- 4-tab navigation (Markets/Whisper/Portfolio/Profile)
+- User authentication (JWT)
+- AI Chat with logo avatar
+- Admin dashboard
+- MySQL backend (Alibaba Cloud)
+
+### v1.0 (Legacy)
+- Dark theme web prototype
+- Basic AI chatbot interface
+- Static portfolio display

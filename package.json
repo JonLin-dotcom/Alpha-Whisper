@@ -1,37 +1,19 @@
 {
   "name": "alpha-whisper",
-  "version": "2.0.0",
-  "description": "Generative AI Robo-Advisory Framework - v2.0 with AInvest-style UI",
-  "private": true,
+  "version": "2.1.0",
+  "description": "AI Robo-Advisory with Full US Market Real-Time Data",
   "scripts": {
-    "dev": "node backend/server.js",
-    "build": "echo 'Frontend is pure HTML/CSS/JS - no build step required'",
     "start": "node backend/server.js",
-    "db:setup": "mysql -h 47.119.141.23 -u root -p < backend/schema.sql"
+    "dev": "nodemon backend/server.js"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "helmet": "^7.1.0",
+    "mysql2": "^3.6.5",
+    "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
-    "mysql2": "^3.6.5"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/JonLin-dotcom/Alpha-Whisper.git"
-  },
-  "keywords": [
-    "ai",
-    "robo-advisory",
-    "fintech",
-    "android",
-    "aab",
-    "investment"
-  ],
-  "license": "MIT"
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "dotenv": "^16.3.1",
+    "yahoo-finance2": "^2.11.3"
+  }
 }
