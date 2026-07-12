@@ -1,164 +1,73 @@
 # Alibaba Cloud MySQL Database Setup Guide
 
-## Your Alibaba Cloud Instance Information
+## Your Instance Information
 
 ```
 Region: 华南1 (Shenzhen) | cn-shenzhen
 Instance ID: i-wz9hx8d78xo1ytosmlrg
-Hostname: iZwz9hx8d78xo1ytosmlrgZ
 Public IP: 47.119.141.23
 Private IP: 172.31.2.242
 Login: root
 Password: Aa138088!
+Database: alpha_whisper
 ```
 
 ---
 
-## Step 1: Connect to Your Alibaba Cloud MySQL Instance
+## Step 1: Connect to MySQL
 
-### Option A: From Local Computer
+### From Local Computer
 
 ```bash
-# Install MySQL Client (if not already installed)
+# Install MySQL Client
 # macOS:
 brew install mysql-client
 
-# Ubuntu/Debian:
+# Ubuntu:
 sudo apt-get install mysql-client
 
-# Connect to your instance
-mysql -h 47.119.141.23 -u root -p -P 3306
-
-# When prompted, enter password: Aa138088!
+# Connect
+mysql -h 47.119.141.23 -u root -pAa138088! -P 3306
 ```
 
-### Option B: Connect from EC2/ECS Instance in Same VPC
+### From ECS in Same VPC (Faster)
 
 ```bash
-# If you're on an Alibaba Cloud ECS instance, use the private IP:
-mysql -h 172.31.2.242 -u root -p -P 3306
-
-# This will be faster (no internet gateway overhead)
+mysql -h 172.31.2.242 -u root -pAa138088! -P 3306
 ```
 
 ---
 
-## Step 2: Create Application Database
-
-Once connected to MySQL, run these commands:
+## Step 2: Create Database
 
 ```sql
--- Create database with UTF8MB4 support for proper emoji/Chinese character support
 CREATE DATABASE alpha_whisper 
 CHARACTER SET utf8mb4 
 COLLATE utf8mb4_unicode_ci;
 
--- Verify database was created
-SHOW DATABASES;
-```
-
-Expected output:
-```
-+--------------------+
-| Database           |
-+--------------------+
-| information_schema |
-| alpha_whisper      | ✓ (newly created)
-| mysql              |
-| performance_schema |
-+--------------------+
+SHOW DATABASES;  -- Verify
 ```
 
 ---
 
-## Step 3: Create Application User (Recommended)
-
-Creating a dedicated user is better than using root for security:
+## Step 3: Create Application User
 
 ```sql
--- Create application user
+-- Create user
 CREATE USER 'alpha_app'@'%' IDENTIFIED BY 'AlphaApp123!@Shenzhen';
 
--- Grant all privileges on alpha_whisper database
+-- Grant privileges
 GRANT ALL PRIVILEGES ON alpha_whisper.* TO 'alpha_app'@'%';
 
--- Flush privileges to apply immediately
 FLUSH PRIVILEGES;
 
--- Verify user was created
+-- Verify
 SELECT User, Host FROM mysql.user WHERE User = 'alpha_app';
 ```
 
-Expected output:
-```
-+----------+------+
-| User     | Host |
-+----------+------+
-| alpha_app| %    | ✓
-+----------+------+
-```
-
 ---
 
-## Step 4: Verify Connection
-
-Test the connection with your application credentials:
-
-```bash
-# Test with root (should work immediately)
-mysql -h 47.119.141.23 -u root -pAa138088! -P 3306 -e "SELECT 1;"
-
-# Test with application user
-mysql -h 47.119.141.23 -u alpha_app -pAlphaApp123!@Shenzhen -P 3306 -e "SELECT 1;"
-
-# Both should return: 1
-```
-
----
-
-## Step 5: Configure Backend Application
-
-### Option A: Using Root Account (Simpler for Development)
-
-Create `backend/.env`:
-
-```bash
-cat > backend/.env << 'EOF'
-PORT=3000
-NODE_ENV=development
-JWT_SECRET=your-strong-secret-key-here
-
-DB_HOST=47.119.141.23
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=Aa138088!
-DB_NAME=alpha_whisper
-EOF
-```
-
-### Option B: Using Application User (Recommended for Production)
-
-Create `backend/.env`:
-
-```bash
-cat > backend/.env << 'EOF'
-PORT=3000
-NODE_ENV=production
-JWT_SECRET=your-strong-secret-key-here
-
-DB_HOST=47.119.141.23
-DB_PORT=3306
-DB_USER=alpha_app
-DB_PASSWORD=AlphaApp123!@Shenzhen
-DB_NAME=alpha_whisper
-EOF
-```
-
----
-
-## Step 6: Initialize Database Schema
-
-The backend will automatically create tables on first run, but you can manually initialize:
+## Step 4: Initialize Schema
 
 ```sql
 USE alpha_whisper;
@@ -176,7 +85,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Portfolio Holdings Table
+-- Portfolio Holdings
 CREATE TABLE IF NOT EXISTS portfolio_holdings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -192,7 +101,7 @@ CREATE TABLE IF NOT EXISTS portfolio_holdings (
     UNIQUE KEY unique_holding (user_id, symbol)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Stock List Table
+-- Stock List
 CREATE TABLE IF NOT EXISTS stock_list (
     symbol VARCHAR(20) PRIMARY KEY,
     name VARCHAR(200),
@@ -204,11 +113,10 @@ CREATE TABLE IF NOT EXISTS stock_list (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_sector (sector),
     INDEX idx_exchange (exchange),
-    INDEX idx_active (is_active),
     FULLTEXT INDEX idx_search (symbol, name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Stock Prices Cache Table
+-- Stock Prices
 CREATE TABLE IF NOT EXISTS stock_prices (
     symbol VARCHAR(20) PRIMARY KEY,
     price DECIMAL(15,4),
@@ -233,7 +141,7 @@ CREATE TABLE IF NOT EXISTS stock_prices (
     INDEX idx_market_cap (market_cap)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Watchlist Table
+-- Watchlist
 CREATE TABLE IF NOT EXISTS watchlist (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -244,7 +152,7 @@ CREATE TABLE IF NOT EXISTS watchlist (
     UNIQUE KEY unique_watch (user_id, symbol)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Chat Sessions Table
+-- Chat Sessions
 CREATE TABLE IF NOT EXISTS chat_sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -254,7 +162,7 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Chat Messages Table
+-- Chat Messages
 CREATE TABLE IF NOT EXISTS chat_messages (
     id INT AUTO_INCREMENT PRIMARY KEY,
     session_id INT NOT NULL,
@@ -264,7 +172,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Performance Snapshots Table
+-- Performance Snapshots
 CREATE TABLE IF NOT EXISTS performance_snapshots (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -280,8 +188,41 @@ CREATE TABLE IF NOT EXISTS performance_snapshots (
     UNIQUE KEY unique_snapshot (user_id, snapshot_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Verify all tables
-SHOW TABLES;
+SHOW TABLES;  -- Verify all tables created
+```
+
+---
+
+## Step 5: Verify Connection
+
+```bash
+# Test with root
+mysql -h 47.119.141.23 -u root -pAa138088! -P 3306 -e "SELECT 1;"
+
+# Test with app user
+mysql -h 47.119.141.23 -u alpha_app -pAlphaApp123!@Shenzhen -P 3306 -e "SELECT 1;"
+
+# Both should return: 1
+```
+
+---
+
+## Step 6: Configure Backend
+
+Create `backend/.env`:
+
+```bash
+cat > backend/.env << 'EOF'
+PORT=3000
+NODE_ENV=development
+JWT_SECRET=your-strong-secret-key
+
+DB_HOST=47.119.141.23
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=Aa138088!
+DB_NAME=alpha_whisper
+EOF
 ```
 
 ---
@@ -290,31 +231,12 @@ SHOW TABLES;
 
 ```bash
 cd backend
-
-# Make sure .env is configured correctly
-cat .env
-
-# Install dependencies
 npm install
-
-# Start the server
 npm start
 ```
 
-You should see:
-
+Expected output:
 ```
-============================================
-  Alpha Whisper v2.1 API
-  Full US Market Integration
-  Running on port 3000
-  Database: 47.119.141.23:3306/alpha_whisper
-  Yahoo Finance: ENABLED
-  Price Cache TTL: 60s
-  Rate Limit: 100 req/60s
-  Environment: development
-============================================
-
 [DB] Connected to alpha_whisper database successfully
 [DB] All tables verified/created successfully
 [DB] Seeding 206 popular US stocks...
@@ -323,192 +245,91 @@ You should see:
 
 ---
 
-## Step 8: Verify Data
-
-```bash
-# Connect to the database
-mysql -h 47.119.141.23 -u root -pAa138088! -P 3306 alpha_whisper
-
-# Check tables were created
-SHOW TABLES;
-
-# Check users table
-SELECT COUNT(*) as user_count FROM users;
-
-# Check stocks were seeded
-SELECT COUNT(*) as stock_count FROM stock_list;
-SELECT * FROM stock_list LIMIT 5;
-
-# Check prices cache
-SELECT COUNT(*) as price_count FROM stock_prices;
-```
-
-Expected output:
-```
-Tables:
-+-----------------------+
-| Tables_in_alpha_whisper |
-+-----------------------+
-| chat_messages         |
-| chat_sessions         |
-| performance_snapshots |
-| portfolio_holdings    |
-| stock_list            |
-| stock_prices          |
-| users                 |
-| watchlist             |
-+-----------------------+
-
-Stock count: 206
-Price cache entries: [will grow as prices are fetched]
-```
-
----
-
 ## Troubleshooting
 
-### Connection Issues
+### Connection Refused
 
-**Error: "Connection refused"**
-```
-Problem: Cannot connect to 47.119.141.23:3306
+```bash
+# Verify instance is running
+# Alibaba ECS Console → Check instance status
 
-Solutions:
-1. Verify Alibaba Cloud instance is running
-   - Go to ECS Console → Instances
-   - Check if your instance is "Running"
+# Check security group
+# Add rule: MySQL (3306) → 0.0.0.0/0
 
-2. Check security group rules
-   - Instance → Security Groups
-   - Add rule: Inbound → MySQL (3306) → 0.0.0.0/0
-
-3. Test from command line:
-   nc -zv 47.119.141.23 3306
+# Test connectivity
+nc -zv 47.119.141.23 3306
 ```
 
-**Error: "Access denied for user 'root'@'xxx.xxx.xxx.xxx'"**
-```
-Problem: Wrong password or host not allowed
+### Access Denied
 
-Solutions:
-1. Verify password: Aa138088!
-2. Create user with % (all hosts):
-   GRANT ALL PRIVILEGES ON alpha_whisper.* TO 'root'@'%';
-3. Flush privileges:
-   FLUSH PRIVILEGES;
-```
-
-### Database Issues
-
-**Error: "Unknown database 'alpha_whisper'"**
 ```sql
--- Create it:
+-- Verify user exists
+SELECT User, Host FROM mysql.user WHERE User = 'alpha_app';
+
+-- Recreate user
+DROP USER 'alpha_app'@'%';
+CREATE USER 'alpha_app'@'%' IDENTIFIED BY 'NewPassword123!';
+GRANT ALL PRIVILEGES ON alpha_whisper.* TO 'alpha_app'@'%';
+FLUSH PRIVILEGES;
+```
+
+### Database Not Found
+
+```sql
+-- Create database
 CREATE DATABASE alpha_whisper CHARACTER SET utf8mb4;
 
--- Or verify it exists:
+-- Verify
 SHOW DATABASES;
-```
-
-**Error: "Table doesn't exist"**
-```
-Problem: Tables weren't created
-
-Solution:
-The backend will auto-create tables on first run.
-Or manually run the schema commands above.
 ```
 
 ---
 
 ## Security Best Practices
 
-### For Production Deployment:
-
-1. **Change Root Password**
+1. **Change root password**
    ```sql
-   ALTER USER 'root'@'localhost' IDENTIFIED BY 'NewStrongPassword123!@';
+   ALTER USER 'root'@'%' IDENTIFIED BY 'NewStrongPassword123!';
    FLUSH PRIVILEGES;
    ```
 
-2. **Use Application User (Not Root)**
+2. **Use application user (not root)**
    ```sql
-   CREATE USER 'alpha_app'@'%' IDENTIFIED BY 'SecureAppPassword123!';
    GRANT SELECT, INSERT, UPDATE, DELETE ON alpha_whisper.* TO 'alpha_app'@'%';
-   FLUSH PRIVILEGES;
    ```
 
-3. **Restrict Network Access**
-   - In Alibaba Cloud ECS Security Group:
-   - Only allow MySQL (3306) from your application server IP
+3. **Restrict network access**
+   - Only allow MySQL from your app server IP
    - Not 0.0.0.0/0 in production
 
-4. **Enable SSL/TLS for Connections**
+4. **Enable automated backups**
+   - Alibaba RDS → Backups → Daily
+   - Retention: 30 days
+
+5. **Enable SSL/TLS**
    ```bash
-   # Update backend configuration
    DB_SSL=true
-   DB_SSL_CA=/path/to/ca-cert.pem
    ```
 
-5. **Enable Automated Backups**
-   - Alibaba Cloud RDS Console
-   - Backup Frequency: Daily
-   - Retention Period: 30 days
-
 ---
 
-## Monitoring & Maintenance
-
-### Check Database Size
+## Monitoring
 
 ```sql
-SELECT 
-    table_name,
-    ROUND(((data_length + index_length) / 1024 / 1024), 2) AS size_mb
-FROM information_schema.tables
-WHERE table_schema = 'alpha_whisper'
-ORDER BY (data_length + index_length) DESC;
-```
-
-### Monitor Active Connections
-
-```sql
+-- Active connections
 SHOW PROCESSLIST;
-```
 
-### Optimize Tables
+-- Table sizes
+SELECT table_name, 
+       ROUND(((data_length + index_length) / 1024 / 1024), 2) AS size_mb
+FROM information_schema.tables
+WHERE table_schema = 'alpha_whisper';
 
-```sql
-USE alpha_whisper;
-
--- Optimize all tables
-OPTIMIZE TABLE users;
-OPTIMIZE TABLE portfolio_holdings;
-OPTIMIZE TABLE stock_list;
+-- Optimize tables
 OPTIMIZE TABLE stock_prices;
-OPTIMIZE TABLE chat_sessions;
-OPTIMIZE TABLE chat_messages;
-OPTIMIZE TABLE performance_snapshots;
-OPTIMIZE TABLE watchlist;
-```
-
-### Check Replication Status (if applicable)
-
-```sql
-SHOW MASTER STATUS;
-SHOW SLAVE STATUS\G
+OPTIMIZE TABLE stock_list;
 ```
 
 ---
 
-## Next Steps
-
-1. ✅ Connect to Alibaba Cloud MySQL
-2. ✅ Create `alpha_whisper` database
-3. ✅ Configure backend `.env` file
-4. ✅ Start backend server
-5. ✅ Deploy frontend
-6. ✅ Register first user and test
-
-You're all set! 🚀
-
-Your app is now connected to Alibaba Cloud MySQL in the Shenzhen region!
+You're all set! Your database is ready for Alpha Whisper. 🚀
